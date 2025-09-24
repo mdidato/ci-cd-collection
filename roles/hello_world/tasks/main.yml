@@ -1,0 +1,5 @@
+---
+# tasks file for automation_bootcamp.my_collection.hello_world
+- name: Say hello to the Ansible Bootcamp attendees
+  ansible.builtin.debug:
+    msg: "The CI/CD lab portion of the Ansible Bootcamp is now completed!"
