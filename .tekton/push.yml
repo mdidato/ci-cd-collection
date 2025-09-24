@@ -1,43 +1,57 @@
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
-  name: ansible-collection-ci-testrun
-  namespace: aap
-  labels:
-    tekton.dev/pipeline: ansible-collection-ci
+  annotations:
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+    pipelinesascode.tekton.dev/on-event: pull_request
+    pipelinesascode.tekton.dev/on-target-branch: main
+    pipelinesascode.tekton.dev/task: git-clone
+    pipelinesascode.tekton.dev/task-1: pylint
+  name: pipelinerun-python
 spec:
   params:
-    - name: collection-url
-      value: 'https://github.com/mdidato/ci-cd-collection.git'
-    - name: playbook-repo
-      value: 'https://github.com/mdidato/ansible_bootcamp_enablement.git'
-    - name: branch-name
-      value: main
-    - name: FQCN
-      value: automation_bootcamp.my_collection
-    - name: pah-username
-      value: admin
-    - name: pah-password
-      value: VVBBovDsWYby
-    - name: pah-host
-      value: 'https://aap-aap.apps.cluster-jx5m7.dynamic.redhatworkshops.io'
-  pipelineRef:
-    name: ansible-collection-ci
-  taskRunTemplate:
-    serviceAccountName: pipeline
-  timeouts:
-    pipeline: 1h0m0s
+  - name: repo_url
+    value: '{{ repo_url }}'
+  - name: revision
+    value: '{{ revision }}'
+  pipelineSpec:
+    params:
+    - name: repo_url
+    - name: revision
+    tasks:
+    - name: fetch-repository
+      params:
+      - name: url
+        value: $(params.repo_url)
+      - name: revision
+        value: $(params.revision)
+      taskRef:
+        name: git-clone
+      workspaces:
+      - name: output
+        workspace: source
+      - name: basic-auth
+        workspace: basic-auth
+    - name: pylint
+      runAfter:
+      - fetch-repository
+      taskRef:
+        name: pylint
+      workspaces:
+      - name: source
+        workspace: source
+    workspaces:
+    - name: source
+    - name: basic-auth
   workspaces:
-    - name: shared-workspace
-      volumeClaimTemplate:
-        metadata:
-          creationTimestamp: null
-        spec:
-          accessModes:
-            - ReadWriteOnce
-          resources:
-            requests:
-              storage: 1Gi
-          storageClassName: ocs-external-storagecluster-ceph-rbd
-          volumeMode: Filesystem
-        status: {}
+  - name: source
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  - name: basic-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
