@@ -5,7 +5,7 @@
 
 namespace: "automation_bootcamp"
 name: "my_collection"
-version: 1.2.4
+version: 1.2.5
 readme: README.md
 authors:
   - your name <example@domain.com>
